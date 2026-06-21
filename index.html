@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lista festiwali</title>
+  <link rel="stylesheet" href="static/style.css">
+  <style>
+    /* page-specific: cockpit ma wezsze wiersze i blokowe daty */
+    #grid { font-size:13px; }
+    #grid th, #grid td { padding:7px 9px; }
+    .dates span { display:block; white-space:nowrap; }
+    a.name { color:var(--ink); font-weight:600; }
+    a.name:hover { color:var(--acc); }
+    #grid .lp { color:var(--mut); text-align:right; width:1%; white-space:nowrap; cursor:default; }
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="nav">
+      <a href="" class="on">Lista festiwali</a>
+      <a href="map/">Mapa</a>
+    </nav>
+    <h1>Lista festiwali</h1>
+    <div class="sub">Master-lista festiwali dla handlowca: skala, terminy, gdzie się sprzedaje i opiekun BD.</div>
+  </header>
+
+  <div class="wrap">
+    <div class="toolbar">
+      <label>Szukaj
+        <input id="q" type="search" placeholder="nazwa / miasto / organizator" size="22">
+      </label>
+      <label>Tier
+        <select id="tier"><option value="">wszystkie</option>
+          <option>A</option><option>B</option><option>C</option><option>D</option></select>
+      </label>
+      <label>Sprzedaż
+        <select id="status"><option value="">wszystkie</option>
+          <option value="competitor">u konkurencji</option>
+          <option value="going">na Going</option>
+          <option value="self">sami sprzedają</option>
+          <option value="unknown">brak info</option></select>
+      </label>
+      <label>Województwo <select id="voiv"><option value="">wszystkie</option></select></label>
+      <label>Opiekun BD <select id="owner"><option value="">wszyscy</option></select></label>
+      <label>Miesiąc <select id="month"><option value="">dowolny</option></select></label>
+      <label><input type="checkbox" id="only2627"> tylko z nadchodzącą datą</label>
+    </div>
+
+    <div class="stat-row" id="stats"></div>
+
+    <div class="card" style="overflow-x:auto;">
+    <table id="grid">
+      <thead><tr>
+        <th class="lp">Lp.</th>
+        <th data-k="tier">Tier</th>
+        <th data-k="name">Festiwal</th>
+        <th data-k="city">Miasto</th>
+        <th data-k="voivodeship">Woj.</th>
+        <th data-k="organizer">Organizator</th>
+        <th data-k="y2025">2025</th>
+        <th data-k="y2026">2026</th>
+        <th data-k="sales_status">Gdzie się sprzedaje</th>
+        <th data-k="bd_owner">Opiekun BD</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+    </div>
+  </div>
+
+  <script>
+    const MONTHS = ['', 'sty','lut','mar','kwi','maj','cze','lip','sie','wrz','paź','lis','gru'];
+    const STATUS_LABEL = { competitor:'u konkurencji', going:'na Going', self:'sami sprzedają', unknown:'brak info' };
+    let DATA = [], sortKey = 'tier', sortDir = 1;
+
+    const MONTHS_GEN = ['', 'stycznia','lutego','marca','kwietnia','maja','czerwca',
+                        'lipca','sierpnia','września','października','listopada','grudnia'];
+    // "2026-08-28" -> {d:28, m:8, y:2026}
+    const parseISO = iso => ({ d:+iso.slice(8,10), m:+iso.slice(5,7), y:+iso.slice(0,4) });
+
+    // nagłówek kolumny niesie rok, więc w komórce go nie powtarzamy (poza przełomem roku)
+    const fmtDate = d => {
+      if (!d || !d.start) return '<span class="y-none">—</span>';
+      const s = parseISO(d.start);
+      const e = d.end && d.end !== d.start ? parseISO(d.end) : null;
+      const yy = y => `'${String(y).slice(2)}`;
+      let txt;
+      if (!e) {
+        txt = `${s.d} ${MONTHS[s.m]}`;
+      } else if (s.m === e.m && s.y === e.y) {           // ten sam miesiąc
+        txt = `${s.d}–${e.d} ${MONTHS[s.m]}`;
+      } else if (s.y === e.y) {                           // przełom miesiąca
+        txt = `${s.d} ${MONTHS[s.m]} – ${e.d} ${MONTHS[e.m]}`;
+      } else {                                            // przełom roku
+        txt = `${s.d} ${MONTHS[s.m]} ${yy(s.y)} – ${e.d} ${MONTHS[e.m]} ${yy(e.y)}`;
+      }
+      const full = `${s.d} ${MONTHS_GEN[s.m]} ${s.y}` + (e ? ` – ${e.d} ${MONTHS_GEN[e.m]} ${e.y}` : '');
+      return '<span title="' + full + (d.status ? ' · ' + d.status : '') + '">' + txt + '</span>';
+    };
+
+    function fillSelect(id, values, mapper) {
+      const sel = document.getElementById(id);
+      values.filter(Boolean).sort().forEach(v => {
+        const o = document.createElement('option');
+        o.value = v; o.textContent = mapper ? mapper(v) : v; sel.appendChild(o);
+      });
+    }
+
+    function applyFilters() {
+      const q = document.getElementById('q').value.toLowerCase().trim();
+      const tier = document.getElementById('tier').value;
+      const status = document.getElementById('status').value;
+      const voiv = document.getElementById('voiv').value;
+      const owner = document.getElementById('owner').value;
+      const month = document.getElementById('month').value;
+      const only = document.getElementById('only2627').checked;
+
+      let rows = DATA.filter(r => {
+        if (tier && r.tier !== tier) return false;
+        if (status && r.sales_status !== status) return false;
+        if (voiv && r.voivodeship !== voiv) return false;
+        if (owner && r.bd_owner !== owner) return false;
+        if (month && String(r.month) !== month) return false;
+        if (only && !((r.y2026 && r.y2026.start) || (r.y2027 && r.y2027.start))) return false;
+        if (q) {
+          const hay = [r.name, r.city, r.organizer, r.platforms].filter(Boolean).join(' ').toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+
+      rows.sort((a, b) => {
+        const va = sortVal(a, sortKey), vb = sortVal(b, sortKey);
+        return (va < vb ? -1 : va > vb ? 1 : 0) * sortDir;
+      });
+      render(rows);
+    }
+
+    const sortVal = (r, k) => {
+      if (k.startsWith('y')) return (r[k] && r[k].start) || '￿';
+      return (r[k] || '').toString().toLowerCase();
+    };
+
+    function render(rows) {
+      const tb = document.querySelector('#grid tbody');
+      tb.innerHTML = rows.map((r, i) => `
+        <tr>
+          <td class="lp">${i + 1}</td>
+          <td><span class="tier tier-${r.tier}">${r.tier}</span></td>
+          <td><a class="name" href="festival/${r.slug}">${r.name}</a></td>
+          <td>${r.city || ''}</td>
+          <td>${r.voivodeship || ''}</td>
+          <td>${r.organizer_id
+              ? '<a class="name" href="organizer/' + r.organizer_id + '">' + (r.organizer || 'organizator') + '</a>'
+              : (r.organizer || '<span class="muted">—</span>')}</td>
+          <td class="dates">${fmtDate(r.y2025)}</td>
+          <td class="dates">${fmtDate(r.y2026)}</td>
+          <td><span class="badge s-${r.sales_status}">${STATUS_LABEL[r.sales_status]}</span>
+              ${r.platforms ? '<br><span class="muted">' + r.platforms + '</span>' : ''}</td>
+          <td>${r.bd_owner || '<span class="muted">—</span>'}</td>
+        </tr>`).join('');
+
+      const n = rows.length;
+      const by = s => rows.filter(r => r.sales_status === s).length;
+      const box = (v, l) => `<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`;
+      document.getElementById('stats').innerHTML =
+        box(n, 'festiwali (po filtrach)') +
+        box('🔴 ' + by('competitor'), 'u konkurencji') +
+        box('🟢 ' + by('going'), 'na Going') +
+        box('🟠 ' + by('self'), 'sami sprzedają') +
+        box('⚪ ' + by('unknown'), 'brak info');
+    }
+
+    document.querySelectorAll('#grid th').forEach(th =>
+      th.addEventListener('click', () => {
+        const k = th.dataset.k;
+        if (!k) return;                 // kolumna Lp. nie sortuje
+        sortDir = (k === sortKey) ? -sortDir : 1;
+        sortKey = k;
+        applyFilters();
+      }));
+
+    ['q','tier','status','voiv','owner','month','only2627'].forEach(id =>
+      document.getElementById(id).addEventListener('input', applyFilters));
+
+    fetch('api/dashboard.json').then(r => r.json()).then(data => {
+      DATA = data;
+      fillSelect('voiv', [...new Set(data.map(r => r.voivodeship))]);
+      fillSelect('owner', [...new Set(data.map(r => r.bd_owner))]);
+      fillSelect('month', [...new Set(data.map(r => r.month).filter(Boolean))].map(String),
+                 m => MONTHS[+m] + ' (' + m + ')');
+      applyFilters();
+    });
+  </script>
+</body>
+</html>

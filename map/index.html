@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mapa festiwali 2026</title>
+  <link rel="stylesheet" href="../static/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+  <header>
+    <nav class="nav">
+      <a href="../">Lista festiwali</a>
+      <a href="../map/" class="on">Mapa</a>
+    </nav>
+    <h1>Mapa festiwali 2026</h1>
+    <div class="sub">Lokalizacje edycji 2026. Filtruj po gatunku i skali (tier).</div>
+    <div class="filters" style="margin-top:14px;">
+      <label>Gatunek:
+        <select id="genre">
+          <option value="">wszystkie</option>
+          <option value="rock">rock</option>
+          <option value="metal">metal</option>
+          <option value="pop">pop</option>
+          <option value="electronic">electronic</option>
+          <option value="techno">techno</option>
+          <option value="hip-hop">hip-hop</option>
+          <option value="reggae">reggae</option>
+          <option value="jazz">jazz</option>
+          <option value="blues">blues</option>
+          <option value="world">world</option>
+          <option value="student">student</option>
+        </select>
+      </label>
+      <label>Tier:
+        <select id="tier">
+          <option value="">wszystkie</option>
+          <option value="A">A (najwieksze)</option>
+          <option value="B">B</option>
+          <option value="C">C</option>
+          <option value="D">D (lokalne)</option>
+        </select>
+      </label>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div id="map"></div>
+  </div>
+
+  <script>
+    const map = L.map('map').setView([52.1, 19.3], 6);   // srodek Polski
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    // Legenda: ksztalt pinezki = dokladnosc lokalizacji (kolor celowo ten sam)
+    const legend = L.control({position: 'bottomright'});
+    legend.onAdd = function () {
+      const div = L.DomUtil.create('div', 'legend');
+      div.innerHTML =
+        '<b>Lokalizacja</b><br>' +
+        '&#x1F4CD; pinezka &mdash; dokładne miejsce (obiekt)<br>' +
+        '&#x25CF; kółko &mdash; przybliżona (środek miasta)';
+      return div;
+    };
+    legend.addTo(map);
+
+    let layer = L.layerGroup().addTo(map);
+
+    function popupHtml(f) {
+      const dates = f.date_start ? (f.date_start + (f.date_end && f.date_end !== f.date_start ? ' – ' + f.date_end : '')) : 'daty nieznane';
+      return '<b><a href="../festival/' + f.slug + '">' + f.name + '</a></b><br>' +
+             (f.city || '') + ' &middot; tier ' + (f.tier || 'D') + '<br>' + dates +
+             '<br><small>lokalizacja: ' + (f.precision === 'venue' ? 'dokładna (obiekt)' : 'przybliżona (miasto)') + '</small>';
+    }
+
+    let ALL_ITEMS = [];
+    function load() {
+      const g = document.getElementById('genre').value;
+      const t = document.getElementById('tier').value;
+      Promise.resolve(ALL_ITEMS.filter(f => (!g || (f.genres||[]).includes(g)) && (!t || (f.tier||'D') === t)))
+        .then(items => {
+          layer.clearLayers();
+          items.forEach(f => {
+            let m;
+            if (f.precision === 'venue') {
+              m = L.marker([f.lat, f.lon]);            // klasyczna pinezka = dokladne
+            } else {
+              m = L.circleMarker([f.lat, f.lon], {     // kolko = przyblizenie (centroid miasta)
+                radius: 7, color: '#2b6cb8', fillColor: '#2b6cb8',
+                fillOpacity: 0.55, weight: 1.5
+              });
+            }
+            m.bindPopup(popupHtml(f));
+            layer.addLayer(m);
+          });
+        });
+    }
+
+    ['genre', 'tier'].forEach(id => document.getElementById(id).addEventListener('change', load));
+    fetch('../api/map.json').then(r => r.json()).then(d => { ALL_ITEMS = d; load(); });
+  </script>
+</body>
+</html>

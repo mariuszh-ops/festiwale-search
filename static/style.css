@@ -1,0 +1,206 @@
+/* ============================================================
+   Festiwale — system designu (dark) zaadaptowany z biletomat-scraper.
+   Jeden plik wspolny dla wszystkich widokow (kalendarz, cockpit,
+   mapa, karta festiwalu, karta organizatora).
+   ============================================================ */
+:root {
+  --bg:#0f1115; --card:#171a21; --line:#262b36; --ink:#e6e9ef; --mut:#9aa3b2;
+  --acc:#5b8cff; --good:#37c285; --bad:#ef5d6b; --warn:#e6c98a;
+  --field:#0e1117; --hover:#1d212b;
+  /* FullCalendar dark overrides */
+  --fc-border-color:#262b36; --fc-page-bg-color:#171a21;
+  --fc-neutral-bg-color:#1d212b; --fc-today-bg-color:rgba(91,140,255,.10);
+  --fc-button-bg-color:#1d212b; --fc-button-border-color:#262b36;
+  --fc-button-hover-bg-color:#262b36; --fc-button-hover-border-color:#39414f;
+  --fc-button-active-bg-color:#5b8cff; --fc-button-active-border-color:#5b8cff;
+  --fc-list-event-hover-bg-color:#1d212b;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; background:var(--bg); color:var(--ink);
+  font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+}
+a { color:var(--acc); text-decoration:none; }
+a:hover { text-decoration:underline; }
+
+/* ---------- naglowek + nawigacja ---------- */
+header { padding:18px 28px 10px; max-width:1280px; margin-inline:auto; }
+.nav { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+.nav a {
+  padding:7px 14px; border-radius:8px; color:var(--mut);
+  border:1px solid transparent;
+}
+.nav a:hover { color:var(--ink); text-decoration:none; }
+.nav a.on { background:var(--card); border-color:var(--line); color:var(--ink); }
+h1 { margin:6px 0 0; font-size:20px; font-weight:700; }
+h1 small { font-size:13px; font-weight:400; }
+h2 {
+  margin:0 0 10px; font-size:13px; color:var(--mut); font-weight:600;
+  text-transform:uppercase; letter-spacing:.4px;
+}
+h3 { font-size:14px; margin:14px 0 6px; color:var(--ink); }
+.sub { color:var(--mut); margin-top:4px; }
+
+/* ---------- kontener tresci ---------- */
+.wrap { padding:0 28px 40px; max-width:1280px; margin-inline:auto; }
+
+/* ---------- karty ---------- */
+.card {
+  background:var(--card); border:1px solid var(--line); border-radius:12px;
+  padding:16px; margin-bottom:18px;
+}
+section { margin-bottom:22px; }
+section > h2 { margin-bottom:8px; }
+
+/* ---------- KPI ---------- */
+.kpis, .kpi-row, .stat-row {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+  gap:12px; margin:16px 0;
+}
+.kpi, .stat {
+  background:var(--card); border:1px solid var(--line); border-radius:12px;
+  padding:14px 16px;
+}
+.kpi .v, .kpi .value, .stat b { font-size:22px; font-weight:700; display:block; }
+.kpi .l, .kpi .label { color:var(--mut); font-size:12px; margin-top:2px; }
+.stat { font-size:13px; color:var(--mut); }
+
+/* ---------- tabele ---------- */
+table { width:100%; border-collapse:collapse; }
+th, td {
+  text-align:left; padding:9px 10px; border-bottom:1px solid var(--line);
+  vertical-align:top;
+}
+th {
+  color:var(--mut); font-weight:600; cursor:pointer; user-select:none;
+  position:sticky; top:0; background:var(--card); vertical-align:bottom;
+  white-space:nowrap;
+}
+th:hover { color:var(--ink); }
+td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+tr.row:hover, tbody tr:hover td { background:var(--hover); }
+tr.row { cursor:pointer; }
+
+/* ---------- pigulki / tagi / odznaki ---------- */
+.pill {
+  font-size:11px; padding:2px 7px; border-radius:20px;
+  border:1px solid var(--line); color:var(--mut);
+}
+.tag {
+  font-size:11px; padding:2px 8px; border-radius:6px; background:var(--hover);
+  color:#cbd3e1; border:1px solid var(--line); margin:2px 4px 0 0;
+  display:inline-block; white-space:nowrap;
+}
+.badge {
+  display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px;
+  font-weight:600; white-space:nowrap; border:1px solid transparent;
+}
+/* statusy sprzedazy */
+.s-competitor { background:rgba(239,93,107,.14); color:#f3a3ab; border-color:rgba(239,93,107,.3); }
+.s-going      { background:rgba(55,194,133,.14); color:#7fe0b6; border-color:rgba(55,194,133,.3); }
+.s-self       { background:rgba(230,201,138,.14); color:#e6c98a; border-color:rgba(230,201,138,.3); }
+.s-unknown    { background:var(--hover); color:var(--mut); border-color:var(--line); }
+/* odznaki weryfikacji organizatora */
+.b-verified { background:rgba(55,194,133,.14); color:#7fe0b6; border-color:rgba(55,194,133,.3); }
+.b-tocheck  { background:rgba(230,201,138,.14); color:#e6c98a; border-color:rgba(230,201,138,.3); }
+.b-nodata   { background:var(--hover); color:var(--mut); border-color:var(--line); }
+
+/* tier */
+.tier {
+  font-weight:700; text-align:center; border-radius:4px; padding:1px 7px;
+  font-size:12px; display:inline-block; color:#0f1115;
+}
+.tier-A { background:#e6c98a; } .tier-B { background:#37c285; }
+.tier-C { background:#8b9bb0; } .tier-D { background:#3a4150; color:var(--mut); }
+
+/* ---------- kolory pomocnicze ---------- */
+.pos, .good { color:var(--good); }
+.neg, .bad { color:var(--bad); }
+.dim, .muted, .y-none { color:var(--mut); }
+.pot { color:var(--warn); font-weight:600; }
+.empty, .notes { color:var(--mut); }
+.notes { font-style:italic; }
+
+/* ---------- formularze / paski narzedzi ---------- */
+.toolbar, .filters {
+  display:flex; gap:14px; align-items:flex-end; flex-wrap:wrap;
+  margin-bottom:12px; color:var(--mut);
+}
+.toolbar label, .filters label {
+  display:flex; flex-direction:column; gap:3px; font-size:12px; color:var(--mut);
+}
+input[type=search], input[type=number], input[type=text], select {
+  background:var(--field); border:1px solid var(--line); color:var(--ink);
+  border-radius:8px; padding:7px 10px; font:inherit; font-size:13px;
+}
+input[type=search] { min-width:240px; }
+input[type=number] { width:90px; }
+select { cursor:pointer; }
+option { background:var(--card); color:var(--ink); }
+label.chk, .filters label.inline {
+  flex-direction:row; align-items:center; gap:6px; cursor:pointer;
+}
+input[type=checkbox] { accent-color:var(--acc); }
+
+.note {
+  background:#1a1d25; border:1px solid var(--line); border-left:3px solid var(--warn);
+  border-radius:8px; padding:10px 12px; color:var(--mut); font-size:13px; margin:0 0 14px;
+}
+
+/* ---------- kalendarz ---------- */
+#calendar { margin-top:8px; background:var(--card); border:1px solid var(--line);
+  border-radius:12px; padding:16px; }
+.fc { color:var(--ink); }
+.fc .fc-toolbar-title { font-size:18px; }
+.fc .fc-col-header-cell-cushion,
+.fc .fc-daygrid-day-number { color:var(--mut); }
+.fc .fc-button { font-size:13px; text-transform:capitalize; }
+.fc-event { border:none; background:var(--acc); }
+.fc-daygrid-event { padding:1px 4px; font-size:11px; }
+.fc-daygrid-event .fc-event-title, .fc-daygrid-event .fc-event-time { color:inherit; }
+.cal-legend {
+  display:flex; gap:16px; align-items:center; flex-wrap:wrap;
+  color:var(--mut); font-size:12px; margin:4px 0 12px;
+}
+.cal-legend .lg { display:flex; align-items:center; gap:6px; }
+.cal-legend .tier { font-style:normal; }
+
+/* ---------- karta festiwalu ---------- */
+.meta p { margin:5px 0; }
+.lineup { columns:2; list-style:none; padding:0; }
+.lineup li { margin-bottom:5px; break-inside:avoid; }
+.lineup.prev { color:var(--mut); }
+
+/* ---------- karta organizatora ---------- */
+.org-header {
+  background:linear-gradient(180deg,#1c2230,#171a21); border:1px solid var(--line);
+  border-radius:12px; padding:18px 20px; margin-bottom:18px;
+}
+.org-header h1 { margin:0 0 6px; }
+.org-header .forma { color:var(--mut); font-size:.95rem; }
+.dl { display:grid; grid-template-columns:max-content 1fr; gap:6px 18px; margin:8px 0; }
+.dl dt { color:var(--mut); font-weight:600; }
+.dl dd { margin:0; }
+.chart { margin:14px 0; }
+.bar-row {
+  display:grid; grid-template-columns:56px 1fr auto; align-items:center;
+  gap:10px; margin:6px 0; font-size:13px;
+}
+.bar-track { background:var(--field); border:1px solid var(--line); border-radius:5px; height:18px; overflow:hidden; }
+.bar-fill { background:var(--acc); height:100%; border-radius:5px; min-width:2px; }
+.bar-val { white-space:nowrap; color:var(--ink); }
+.person { padding:5px 0; border-bottom:1px solid var(--line); }
+.person .rola { color:var(--mut); font-size:.9rem; }
+
+/* ---------- mapa ---------- */
+#map { height:calc(100vh - 150px); min-height:480px; border:1px solid var(--line);
+  border-radius:12px; }
+.legend {
+  background:var(--card); color:var(--ink); padding:8px 12px; border-radius:8px;
+  border:1px solid var(--line); box-shadow:0 2px 8px rgba(0,0,0,.4);
+  font-size:13px; line-height:1.7;
+}
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+  background:var(--card); color:var(--ink); border:1px solid var(--line);
+}
+.leaflet-popup-content a { color:var(--acc); }
